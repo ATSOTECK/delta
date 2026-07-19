@@ -25,9 +25,6 @@ pub fn main(init: std.process.Init) !void {
     }
     defer sdl.releaseWindowFromGPUDevice(gpu_device, window);
 
-    const renderer = sdl.createRenderer(window, null);
-    defer sdl.destroyRenderer(renderer);
-
     while (true) {
         var event: sdl.SDL_Event = undefined;
         while (sdl.pollEvent(&event)) {
