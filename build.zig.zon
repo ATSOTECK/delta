@@ -1,6 +1,12 @@
 .{
     .name = .delta,
     .version = "0.0.1",
+    .dependencies = .{
+        .zsdl3 = .{
+            .url = "git+https://github.com/felixuxx/zsdl3.git#3659117a955d175c680add0ffaeeeb43e2537cfa",
+            .hash = "zsdl3-0.0.0-l0pNpNL6BwCqFiKwNGiUePJa60agOcirrIiAgYDrYVLW",
+        },
+    },
     .minimum_zig_version = "0.16.0",
     .paths = .{""},
     .fingerprint = 0x9643fed9535a7651,

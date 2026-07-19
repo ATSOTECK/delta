@@ -16,6 +16,10 @@ pub fn build(b: *std.Build) void {
     });
     b.installArtifact(exe);
 
+    const zsdl3 = b.dependency("zsdl3", .{});
+    exe.root_module.addImport("zsdl3", zsdl3.module("zsdl3"));
+    exe.root_module.linkSystemLibrary("SDL3", .{});
+
     const run_cmd = b.addRunArtifact(exe);
     run_cmd.step.dependOn(b.getInstallStep());
     if (b.args) |args| {
