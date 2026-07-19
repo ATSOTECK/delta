@@ -1,26 +1,23 @@
 const std = @import("std");
 const sdl = @import("zsdl3");
 const gfx = @import("gfx.zig");
+const errors = @import("errors.zig");
 
 pub fn main(init: std.process.Init) !void {
-    var buf: [4096]u8 = undefined;
-    var stdout_writer = std.Io.File.stdout().writer(init.io, &buf);
-    const stdout = &stdout_writer.interface;
-
-    try stdout.print("Hello, world!\n", .{});
-    try stdout.flush();
-
     if (!sdl.init(sdl.SDL_INIT_VIDEO)) {
-        return;
+        return errors.sdl_error("failed to init SDL");
     }
     defer sdl.quit();
 
     const window = sdl.createWindow("delta", 1920, 1080, sdl.SDL_WINDOW_RESIZABLE);
+    if (window == null) {
+        return errors.sdl_error("failed to create window");
+    }
     defer sdl.destroyWindow(window);
 
-    var renderer = try gfx.Renderer.init(init.gpa, .{ .r = 30, .g = 60, .b = 90 });
+    const clear_color: gfx.Color = .{ .r = 30, .g = 60, .b = 90 };
+    var renderer = try gfx.Renderer.init(init.gpa, window, clear_color);
     defer renderer.deinit();
-    try renderer.claim_window(window);
 
     while (true) {
         var event: sdl.SDL_Event = undefined;

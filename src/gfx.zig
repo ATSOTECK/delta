@@ -1,6 +1,7 @@
 const std = @import("std");
 const builtin = @import("builtin");
 const sdl = @import("zsdl3");
+const errors = @import("errors.zig");
 
 pub const Color = struct {
     r: u8,
@@ -13,15 +14,11 @@ pub const Color = struct {
     }
 };
 
-pub const RendererError = error{Sdl};
-
-pub fn sdl_error(msg: []const u8) RendererError {
-    std.log.err("{s}: {?s}", .{ msg, sdl.getError() });
-    return error.Sdl;
-}
+pub const RendererError = errors.SdlError || error{InitError};
 
 pub const Renderer = struct {
     gpa: std.mem.Allocator,
+    window: ?*sdl.SDL_Window,
     gpu_device: ?*sdl.SDL_GPUDevice,
     quad_pipeline: ?*sdl.SDL_GPUGraphicsPipeline = null,
     text_pipeline: ?*sdl.SDL_GPUGraphicsPipeline = null,
@@ -29,10 +26,14 @@ pub const Renderer = struct {
     sampler: *sdl.SDL_GPUSampler,
     clear_color: sdl.SDL_FColor,
 
-    pub fn init(gpa: std.mem.Allocator, color: Color) RendererError!Renderer {
+    pub fn init(gpa: std.mem.Allocator, window: ?*sdl.SDL_Window, color: Color) RendererError!Renderer {
+        if (window == null) {
+            return RendererError.InitError;
+        }
+
         const debug_mode = builtin.mode == .Debug;
         const gpu_device = sdl.createGPUDevice(sdl.SDL_GPU_SHADERFORMAT_MSL, debug_mode, null) orelse {
-            return sdl_error("failed to create GPU device");
+            return errors.sdl_error("failed to create GPU device");
         };
         const sampler = sdl.createGPUSampler(gpu_device, &.{
             .min_filter = sdl.SDL_GPU_FILTER_LINEAR,
@@ -51,11 +52,14 @@ pub const Renderer = struct {
             .padding = .{ 0, 0 },
             .props = 0,
         }) orelse {
-            return sdl_error("failed to create GPU sampler");
+            return errors.sdl_error("failed to create GPU sampler");
         };
 
         const clear_color: sdl.SDL_FColor = .{ .r = @as(f32, @floatFromInt(color.r)) / 255.0, .g = @as(f32, @floatFromInt(color.g)) / 255.0, .b = @as(f32, @floatFromInt(color.b)) / 255.0, .a = 1.0 };
-        return .{ .gpa = gpa, .gpu_device = gpu_device, .sampler = sampler, .clear_color = clear_color };
+        var renderer: Renderer = .{ .gpa = gpa, .window = window, .gpu_device = gpu_device, .sampler = sampler, .clear_color = clear_color };
+        try renderer.claim_window();
+
+        return renderer;
     }
 
     pub fn deinit(self: *Renderer) void {
@@ -64,13 +68,13 @@ pub const Renderer = struct {
         sdl.destroyGPUDevice(self.gpu_device);
     }
 
-    pub fn claim_window(self: *Renderer, window: ?*sdl.SDL_Window) RendererError!void {
-        if (window == null) {
-            return sdl_error("tried to claim null window");
+    fn claim_window(self: *Renderer) RendererError!void {
+        if (self.window == null) {
+            return errors.sdl_error("tried to claim null window");
         }
 
-        if (!sdl.claimWindowForGPUDevice(self.gpu_device, window)) {
-            return sdl_error("failed to claim window for GPU device");
+        if (!sdl.claimWindowForGPUDevice(self.gpu_device, self.window)) {
+            return errors.sdl_error("failed to claim window for GPU device");
         }
     }
 
@@ -80,14 +84,14 @@ pub const Renderer = struct {
 
     pub fn end_frame(self: *Renderer, window: ?*sdl.SDL_Window) RendererError!void {
         const cmd_buffer = sdl.acquireGPUCommandBuffer(self.gpu_device) orelse {
-            return sdl_error("failed to acquire command buffer");
+            return errors.sdl_error("failed to acquire command buffer");
         };
         var swapchain_texture: ?*sdl.SDL_GPUTexture = null;
         var sw: u32 = 0;
         var sh: u32 = 0;
         if (!sdl.waitAndAcquireGPUSwapchainTexture(cmd_buffer, window, @ptrCast(&swapchain_texture), &sw, &sh)) {
             _ = sdl.submitGPUCommandBuffer(cmd_buffer);
-            return sdl_error("failed to acquire swapchain texture");
+            return errors.sdl_error("failed to acquire swapchain texture");
         }
         if (swapchain_texture == null) {
             // minimized
@@ -114,7 +118,7 @@ pub const Renderer = struct {
         sdl.endGPURenderPass(render_pass);
 
         if (!sdl.submitGPUCommandBuffer(cmd_buffer)) {
-            return sdl_error("failed to submit GPU command buffer");
+            return errors.sdl_error("failed to submit GPU command buffer");
         }
     }
 };
