@@ -119,8 +119,22 @@ pub const Renderer = struct {
 
     pub fn deinit(self: *Renderer) void {
         _ = sdl.waitForGPUIdle(self.gpu_device);
+        for (&self.frames) |*f| {
+            if (f.quad_buf != null) {
+                sdl.releaseGPUBuffer(self.gpu_device, f.quad_buf);
+            }
+            if (f.transfer != null) {
+                sdl.releaseGPUTransferBuffer(self.gpu_device, f.transfer);
+            }
+        }
+        if (self.quad_pipeline != null) {
+            sdl.releaseGPUGraphicsPipeline(self.gpu_device, self.quad_pipeline);
+        }
         sdl.releaseGPUSampler(self.gpu_device, self.sampler);
         sdl.destroyGPUDevice(self.gpu_device);
+
+        self.cmds.deinit(self.gpa);
+        self.quad_verts.deinit(self.gpa);
     }
 
     fn claim_window(self: *Renderer) RendererError!void {
