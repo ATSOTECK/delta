@@ -28,6 +28,9 @@ pub fn main(init: std.process.Init) !void {
         }
 
         renderer.begin_frame();
+
+        renderer.rect(10, 10, 100, 100, .{ .r = 90, .g = 30, .b = 60 });
+
         try renderer.end_frame(window);
     }
 }
