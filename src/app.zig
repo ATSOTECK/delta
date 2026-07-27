@@ -72,6 +72,8 @@ pub const App = struct {
     }
 
     fn deinit(self: *App) void {
+        sdl.removeEventWatch(event_watch, self);
+
         self.workspace.deinit();
         sdl.ttf.quit();
         sdl.quit();
