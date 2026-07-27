@@ -7,6 +7,19 @@ const Workspace = @import("workspace.zig").Workspace;
 
 pub const AppError = errors.SdlError || error{InitError};
 
+fn event_watch(user_data: ?*anyopaque, sdl_event: ?*sdl.SDL_Event) callconv(.c) bool {
+    const data = user_data orelse return true;
+    const event = sdl_event orelse return true;
+
+    var app: *App = @ptrCast(@alignCast(data));
+    switch (event.type) {
+        sdl.SDL_EVENT_WINDOW_RESIZED, sdl.SDL_EVENT_WINDOW_EXPOSED => {
+            return app.workspace.handle_event(event.*) catch true;
+        },
+        else => return true,
+    }
+}
+
 pub const App = struct {
     gpa: std.mem.Allocator,
     workspace: Workspace, // TODO: Multiple workspaces.
@@ -65,6 +78,10 @@ pub const App = struct {
     }
 
     pub fn run(self: *App) AppError!void {
+        if (!sdl.addEventWatch(event_watch, self)) {
+            return errors.sdl_error("failed to add event watch");
+        }
+
         while (!self.should_quit) {
             try self.handle_events();
             try self.workspace.draw();

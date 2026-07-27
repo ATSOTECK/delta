@@ -1,20 +1,5 @@
 const std = @import("std");
-const sdl = @import("zsdl3");
-const errors = @import("errors.zig");
 const App = @import("app.zig").App;
-
-fn event_watch(user_data: ?*anyopaque, sdl_event: ?*sdl.SDL_Event) callconv(.c) bool {
-    const data = user_data orelse return true;
-    const event = sdl_event orelse return true;
-
-    var app: *App = @ptrCast(@alignCast(data));
-    switch (event.type) {
-        sdl.SDL_EVENT_WINDOW_RESIZED, sdl.SDL_EVENT_WINDOW_EXPOSED => {
-            return app.workspace.handle_event(event.*) catch true;
-        },
-        else => return true,
-    }
-}
 
 pub fn main(init: std.process.Init) !void {
     const cwd = std.Io.Dir.cwd();
@@ -28,9 +13,6 @@ pub fn main(init: std.process.Init) !void {
     }
 
     var app = try App.init(init.gpa);
-    if (!sdl.addEventWatch(event_watch, &app)) {
-        return errors.sdl_error("failed to add event watch");
-    }
     try app.run();
 
     // const text_engine: ?*sdl.ttf.TTF_TextEngine = sdl.ttf.createRendererTextEngine(renderer.renderer) orelse {
