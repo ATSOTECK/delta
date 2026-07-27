@@ -21,6 +21,7 @@ pub fn main(init: std.process.Init) !void {
     if (!sdl.ttf.init()) {
         return errors.sdl_error("failed to init SDL_ttf");
     }
+    defer sdl.ttf.quit();
 
     const window = sdl.createWindow("delta - Fingerspitzengefühl", 1920, 1080, sdl.SDL_WINDOW_RESIZABLE) orelse {
         return errors.sdl_error("failed to create window");
@@ -31,7 +32,7 @@ pub fn main(init: std.process.Init) !void {
     var renderer = try gfx.Renderer.init(init.gpa, window, clear_color);
     defer renderer.deinit();
 
-    const text_engine: ?*sdl.ttf.TTF_TextEngine = sdl.ttf.createGPUTextEngine(renderer.gpu_device) orelse {
+    const text_engine: ?*sdl.ttf.TTF_TextEngine = sdl.ttf.createRendererTextEngine(renderer.renderer) orelse {
         return errors.sdl_error("failed to create GPU text engine");
     };
     const font: *sdl.ttf.TTF_Font = sdl.ttf.openFont("assets/font/JetBrainsMono-Regular.ttf", 32) orelse {
@@ -55,6 +56,6 @@ pub fn main(init: std.process.Init) !void {
         renderer.draw_rect(60, 60, 100, 100, .{ .r = 30, .g = 90, .b = 60, .a = 100 });
         renderer.draw_text(text, 10, 150, .{ .r = 255, .g = 255, .b = 255 });
 
-        try renderer.end_frame(window);
+        try renderer.end_frame();
     }
 }
