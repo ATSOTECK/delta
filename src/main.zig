@@ -42,6 +42,10 @@ pub fn main(init: std.process.Init) !void {
         return errors.sdl_error("failed to create text");
     };
 
+    const text_2: *sdl.ttf.TTF_Text = sdl.ttf.createText(text_engine, font, "This is a really long line of text isn't it!", 0) orelse {
+        return errors.sdl_error("failed to create text");
+    };
+
     while (true) {
         var event: sdl.SDL_Event = undefined;
         while (sdl.pollEvent(&event)) {
@@ -54,7 +58,15 @@ pub fn main(init: std.process.Init) !void {
 
         renderer.draw_rect(10, 10, 100, 100, .{ .r = 90, .g = 30, .b = 60 });
         renderer.draw_rect(60, 60, 100, 100, .{ .r = 30, .g = 90, .b = 60, .a = 100 });
-        renderer.draw_text(text, 10, 150, .{ .r = 255, .g = 255, .b = 255 });
+        renderer.draw_rect_outline(250, 250, 100, 100, gfx.White);
+        renderer.draw_text(text, 10, 150, gfx.White);
+
+        renderer.draw_rect_outline(500, 100, 375, 42, gfx.Black);
+        renderer.start_clip_rect(500, 100, 375, 42);
+        renderer.draw_text(text_2, 500, 100, gfx.White);
+        renderer.end_clip_rect();
+
+        renderer.draw_text(text, 10, 250, gfx.White);
 
         try renderer.end_frame();
     }

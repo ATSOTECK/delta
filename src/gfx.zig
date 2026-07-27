@@ -14,6 +14,9 @@ pub const Color = struct {
     }
 };
 
+pub const White: Color = .{ .r = 255, .g = 255, .b = 255 };
+pub const Black: Color = .{ .r = 0, .g = 0, .b = 0 };
+
 pub const RendererError = errors.SdlError || error{InitError};
 
 pub const Renderer = struct {
@@ -69,8 +72,27 @@ pub const Renderer = struct {
         _ = sdl.renderFillRect(self.renderer, &rect);
     }
 
+    pub fn draw_rect_outline(self: *Renderer, x: f32, y: f32, w: f32, h: f32, color: Color) void {
+        if (w <= 0 or h <= 0 or color.a == 0) {
+            return;
+        }
+
+        const rect: sdl.SDL_FRect = .{ .x = x, .y = y, .w = w, .h = h };
+        _ = sdl.setRenderDrawColor(self.renderer, color.r, color.g, color.b, color.a);
+        _ = sdl.renderRect(self.renderer, &rect);
+    }
+
     pub fn draw_text(self: *Renderer, text: *sdl.ttf.TTF_Text, x: f32, y: f32, color: Color) void {
         _ = sdl.setRenderDrawColor(self.renderer, color.r, color.g, color.b, color.a);
         _ = sdl.ttf.drawRendererText(text, x, y);
+    }
+
+    pub fn start_clip_rect(self: *Renderer, x: i32, y: i32, w: i32, h: i32) void {
+        const rect: sdl.SDL_Rect = .{ .x = x, .y = y, .w = w, .h = h };
+        _ = sdl.setRenderClipRect(self.renderer, &rect);
+    }
+
+    pub fn end_clip_rect(self: *Renderer) void {
+        _ = sdl.setRenderClipRect(self.renderer, null);
     }
 };
