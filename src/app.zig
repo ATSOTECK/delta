@@ -1,6 +1,8 @@
 const std = @import("std");
+const builtin = @import("builtin");
 const sdl = @import("zsdl3");
 const errors = @import("errors.zig");
+const common = @import("common.zig");
 const Workspace = @import("workspace.zig").Workspace;
 
 pub const AppError = errors.SdlError || error{InitError};
@@ -17,6 +19,35 @@ pub const App = struct {
         }
         if (!sdl.ttf.init()) {
             return errors.sdl_error("failed to init SDL_ttf");
+        }
+
+        if (!sdl.setAppMetadata(common.app_name, common.app_version_string, common.app_metadata)) {
+            return errors.sdl_error("failed to set app metadata");
+        }
+        if (!sdl.enableScreenSaver()) {
+            return errors.sdl_error("failed to enable screen saver");
+        }
+        sdl.setEventEnabled(sdl.SDL_EVENT_TEXT_INPUT, true);
+        sdl.setEventEnabled(sdl.SDL_EVENT_TEXT_EDITING, true);
+        // TODO: Make this configurable.
+        if (!sdl.setHint("SDL_MOUSE_FOCUS_CLICKTHROUGH", "1")) {
+            return errors.sdl_error("failed to set mouse focus clickthrough hint");
+        }
+
+        if (!sdl.setHint("SDL_APP_ID", common.app_name)) {
+            return errors.sdl_error("failed to set app id hint");
+        }
+        if (!sdl.setHint("SDL_APP_NAME", common.app_name)) {
+            return errors.sdl_error("failed to set app name hint");
+        }
+
+        if (comptime builtin.os.tag == .macos) {
+            if (!sdl.setHint("SDL_VIDEO_MAC_FULLSCREEN_MENU_VISIBILITY", "1")) {
+                return errors.sdl_error("failed to set fullscreen menu visibility hint");
+            }
+            if (!sdl.setHint("SDL_MAC_SCROLL_MOMENTUM", "1")) {
+                return errors.sdl_error("failed to set scroll momentum hint");
+            }
         }
 
         const workspace = try Workspace.init(gpa);
